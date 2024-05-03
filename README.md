@@ -5,6 +5,7 @@ Loads in OBJ files only using vertex data
 # Dependencies
 
 * [assimp](https://github.com/assimp/assimp)
+* [glm](https://github.com/g-truc/glm)
 
 # CMake
 
@@ -21,6 +22,9 @@ set(ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT OFF CACHE BOOL "" FORCE)
 set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF CACHE BOOL "" FORCE)
 set(ASSIMP_BUILD_OBJ_IMPORTER ON CACHE BOOL "" FORCE)
 
+# GLM: opengl mathematics
+include_directories(external_libraries/glm)
+add_subdirectory(external_libraries/glm)
 
 ... 
 
