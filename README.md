@@ -21,6 +21,8 @@ set(ASSIMP_NO_EXPORT OFF CACHE BOOL "" FORCE)
 set(ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT OFF CACHE BOOL "" FORCE)
 set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF CACHE BOOL "" FORCE)
 set(ASSIMP_BUILD_OBJ_IMPORTER ON CACHE BOOL "" FORCE)
+include_directories(external_libraries/assimp/include)
+add_subdirectory(external_libraries/assimp)
 
 # GLM: opengl mathematics
 include_directories(external_libraries/glm)
