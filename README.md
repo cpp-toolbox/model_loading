@@ -2,7 +2,7 @@
 
 Loads in OBJ files only using vertex data
 
-# Depdencies
+# Dependencies
 
 * [assimp](https://github.com/assimp/assimp)
 
