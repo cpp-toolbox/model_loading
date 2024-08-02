@@ -3,34 +3,34 @@
 #include <assimp/postprocess.h>
 
 #include "model_loading.hpp"
-#include "../../graphics/textured_model_loading/sbpt_generated_includes.hpp"
+#include "sbpt_generated_includes.hpp"
 
 Model ModelLoader::load_model(const std::string &path) {
 
-    auto process_step = [this](aiMesh *mesh, const aiScene *scene) {
+    std::function<void(aiMesh *, const aiScene*)> process_step = [this](aiMesh *mesh, const aiScene *scene) {
+        spdlog::get(Systems::asset_loading)->info("process step working");
         this->meshes.push_back(this->process_mesh(mesh, scene));
     };
 
-    auto recursively_process_nodes = this->recursively_process_nodes_closure(process_step);
+    std::function<void(aiNode *, const aiScene *)> recursively_process_nodes = ModelLoader::recursively_process_nodes_closure(process_step);
 
     this->call_function_with_assimp_importer_context(path, [&](auto root, auto scene) {
         spdlog::get(Systems::asset_loading)->info("starting to process nodes");
-        recursively_process_nodes(scene->mRootNode, scene);
+        recursively_process_nodes(root, scene);
         spdlog::get(Systems::asset_loading)->info("processed all nodes");
     });
 
     return Model(this->meshes);
 };
 
-void ModelLoader::process_function(aiMesh *mesh, const aiScene *scene) {}
 /**
  * /note this function is guaranteed to terminate because all models are finite and non-cyclic
  */
 std::function<void(aiNode *, const aiScene *)>
-ModelLoader::recursively_process_nodes_closure(std::function<void(aiMesh *, const aiScene *)> process_function) {
+ModelLoader::recursively_process_nodes_closure(const std::function<void(aiMesh *, const aiScene *)>& process_function) {
     std::function<void(aiNode * node, const aiScene *scene)> recursively_process_nodes = [&](aiNode *node,
                                                                                              const aiScene *scene) {
-        spdlog::get(Systems::asset_loading)->info("stared processing meshes");
+        spdlog::get(Systems::asset_loading)->info("started processing meshes");
         for (unsigned int i = 0; i < node->mNumMeshes; i++) {
             unsigned int mesh_index = node->mMeshes[i];
             aiMesh *mesh = scene->mMeshes[mesh_index];

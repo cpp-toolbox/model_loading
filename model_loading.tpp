@@ -6,7 +6,7 @@
 #include "assimp/postprocess.h"
 
 #include "model_loading.hpp"
-#include "../../graphics/textured_model_loading/sbpt_generated_includes.hpp"
+#include "sbpt_generated_includes.hpp"
 
 template <typename func>
 void ModelLoader::call_function_with_assimp_importer_context(const std::string &path, func fn) {
