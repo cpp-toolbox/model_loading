@@ -6,7 +6,7 @@
 #include "assimp/postprocess.h"
 
 #include "model_loading.hpp"
-#include "../../graphics/textured_model_loading/sbpt_generated_includes.hpp"
+#include "sbpt_generated_includes.hpp"
 
 template <typename func>
 void ModelLoader::call_function_with_assimp_importer_context(const std::string &path, func fn) {
@@ -17,6 +17,6 @@ void ModelLoader::call_function_with_assimp_importer_context(const std::string &
         spdlog::get(Systems::asset_loading)->error("assimp error: {}", importer.GetErrorString());
         throw std::runtime_error("assimp error");
     }
-    this->directory = path.substr(0, path.find_last_of("/"));
+    this->directory_to_asset_being_loaded = path.substr(0, path.find_last_of("/") + 1);
     fn(scene->mRootNode, scene);
 }

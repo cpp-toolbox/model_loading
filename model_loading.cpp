@@ -3,7 +3,6 @@
 #include <assimp/postprocess.h>
 
 #include "model_loading.hpp"
-#include "../../graphics/textured_model_loading/sbpt_generated_includes.hpp"
 
 Model ModelLoader::load_model(const std::string &path) {
 
@@ -30,7 +29,7 @@ std::function<void(aiNode *, const aiScene *)>
 ModelLoader::recursively_process_nodes_closure(std::function<void(aiMesh *, const aiScene *)> process_function) {
     std::function<void(aiNode * node, const aiScene *scene)> recursively_process_nodes = [&](aiNode *node,
                                                                                              const aiScene *scene) {
-        spdlog::get(Systems::asset_loading)->info("stared processing meshes");
+        spdlog::get(Systems::asset_loading)->info("started processing meshes");
         for (unsigned int i = 0; i < node->mNumMeshes; i++) {
             unsigned int mesh_index = node->mMeshes[i];
             aiMesh *mesh = scene->mMeshes[mesh_index];

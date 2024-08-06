@@ -27,22 +27,18 @@ class Mesh {
 /**
  * /brief A model is a collection of Meshes
  */
-class Model {
-  public:
-    explicit Model(std::vector<Mesh> meshes) : meshes(std::move(meshes)){};
-    std::vector<Mesh> meshes;
-};
+using Model = std::vector<Mesh>;
 
 class ModelLoader {
     std::vector<Mesh> meshes;
     std::string path_to_assets_directory = "assets";
-    std::string directory;
     void process_function(aiMesh *mesh, const aiScene *scene);
     std::vector<glm::vec3> process_mesh_vertex_positions(aiMesh *mesh);
     std::vector<unsigned int> process_mesh_indices(aiMesh *mesh);
     Model load_model(const std::string &path);
 
   protected:
+    std::string directory_to_asset_being_loaded;
     Mesh process_mesh(aiMesh *mesh, const aiScene *scene);
     static std::function<void(aiNode *, const aiScene *)>
     recursively_process_nodes_closure(std::function<void(aiMesh *, const aiScene *)> process_function);
