@@ -10,6 +10,7 @@
 #include <functional>
 
 glm::vec3 assimp_to_glm_3d_vector(aiVector3D assimp_vector);
+std::vector<glm::vec3> get_ordered_vertex_positions(std::vector<glm::vec3> &vertex_positions, std::vector<unsigned int> &indices);
 
 /**
  * \brief A mesh is a collection of vertex_positions and indices which describe the order in which the vertex_positions
@@ -27,7 +28,13 @@ class Mesh {
 /**
  * /brief A model is a collection of Meshes
  */
-using Model = std::vector<Mesh>;
+
+class Model {
+    public: 
+        Model(std::vector<Mesh> meshes): meshes(meshes) {};
+        std::vector<Mesh> meshes;
+        std::vector<std::vector<glm::vec3>> get_ordered_vertex_positions_for_each_mesh();
+};
 
 class ModelLoader {
     std::vector<Mesh> meshes;
@@ -35,7 +42,9 @@ class ModelLoader {
     void process_function(aiMesh *mesh, const aiScene *scene);
     std::vector<glm::vec3> process_mesh_vertex_positions(aiMesh *mesh);
     std::vector<unsigned int> process_mesh_indices(aiMesh *mesh);
-    Model load_model(const std::string &path);
+
+  public:
+    [[nodiscard]] Model load_model(const std::string &path);
 
   protected:
     std::string directory_to_asset_being_loaded;
