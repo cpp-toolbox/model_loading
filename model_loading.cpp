@@ -34,30 +34,28 @@ std::vector<std::vector<glm::vec3>> Model::get_ordered_vertex_positions_for_each
 }
 
 Model ModelLoader::load_model(const std::string &path) {
-    auto process_step = [this](aiMesh *mesh, const aiScene *scene) {
+
+    std::function<void(aiMesh *, const aiScene *)> process_step = [this](aiMesh *mesh, const aiScene *scene) {
+        spdlog::get(Systems::asset_loading)->info("process step working");
         this->meshes.push_back(this->process_mesh(mesh, scene));
     };
 
-    auto recursively_process_nodes = this->recursively_process_nodes_closure(process_step);
-
-    if (!recursively_process_nodes) {
-        // Handle the error or throw a custom exception
-        throw std::runtime_error("Attempted to call an uninitialized function");
-    }
+    std::function<void(aiNode *, const aiScene *)> recursively_process_nodes = ModelLoader::recursively_process_nodes_closure(process_step);
 
     this->call_function_with_assimp_importer_context(path, [&](auto root, auto scene) {
         spdlog::get(Systems::asset_loading)->info("starting to process nodes");
-        recursively_process_nodes(scene->mRootNode, scene);
+        recursively_process_nodes(root, scene);
         spdlog::get(Systems::asset_loading)->info("processed all nodes");
     });
 
-    return this->meshes;
+    return Model(this->meshes);
 };
 
-void ModelLoader::process_function(aiMesh *mesh, const aiScene *scene) {}
-
 /**
- * /note this function is guaranteed to terminate because all models are finite and non-cyclic
+ * @note this function is guaranteed to terminate because all models are finite and non-cyclic also we have to capture
+ * process_function by value, without this when I capture by a const reference I get a stack access error which probably
+ * means that somehow after the process_function is passed in the stack pops before this function gets called, I don't
+ * know how but that's the only way I can imagine this occurs.
  */
 std::function<void(aiNode *, const aiScene *)>
 ModelLoader::recursively_process_nodes_closure(std::function<void(aiMesh *, const aiScene *)> process_function) {

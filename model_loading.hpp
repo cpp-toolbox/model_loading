@@ -31,7 +31,7 @@ class Mesh {
 
 class Model {
     public: 
-        Model(std::vector<Mesh> meshes): meshes(meshes) {};
+        Model(std::vector<Mesh> meshes): meshes(std::move(meshes)) {};
         std::vector<Mesh> meshes;
         std::vector<std::vector<glm::vec3>> get_ordered_vertex_positions_for_each_mesh();
 };
@@ -49,7 +49,7 @@ class ModelLoader {
   protected:
     std::string directory_to_asset_being_loaded;
     Mesh process_mesh(aiMesh *mesh, const aiScene *scene);
-    static std::function<void(aiNode *, const aiScene *)>
+    std::function<void(aiNode *, const aiScene *)>
     recursively_process_nodes_closure(std::function<void(aiMesh *, const aiScene *)> process_function);
     template <typename func> void call_function_with_assimp_importer_context(const std::string &path, func fn);
 };
