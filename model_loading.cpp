@@ -52,10 +52,12 @@ Model ModelLoader::load_model(const std::string &path) {
 };
 
 /**
- * @note this function is guaranteed to terminate because all models are finite and non-cyclic also we have to capture
- * process_function by value, without this when I capture by a const reference I get a stack access error which probably
- * means that somehow after the process_function is passed in the stack pops before this function gets called, I don't
- * know how but that's the only way I can imagine this occurs.
+ * @note this function is guaranteed to terminate because all models are finite and non-cyclic
+ *
+ *  also we have to capture process_function by value, without this when I capture by a const reference I get a stack
+ *  this only occurs from the texturedmodelloading stuff when called through inheritance, make this better by not using
+ * inheritance at all, access error which probably means that somehow after the process_function is passed in the stack
+ * pops before this function gets called, I don't know how but that's the only way I can imagine this occurs.
  */
 std::function<void(aiNode *, const aiScene *)>
 ModelLoader::recursively_process_nodes_closure(std::function<void(aiMesh *, const aiScene *)> process_function) {
