@@ -1,7 +1,7 @@
 #ifndef MODEL_LOADING_HPP
 #define MODEL_LOADING_HPP
 
-#include "glm/glm.hpp"
+#include <glm/glm.hpp>
 #include <string>
 #include <utility>
 #include <vector>
