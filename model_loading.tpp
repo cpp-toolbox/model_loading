@@ -12,7 +12,7 @@ template <typename func>
 void ModelLoader::call_function_with_assimp_importer_context(const std::string &path, func fn) {
     spdlog::get(Systems::asset_loading)->info("starting to process: {}", path);
     Assimp::Importer importer;
-    const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate);
+    const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         spdlog::get(Systems::asset_loading)->error("assimp error: {}", importer.GetErrorString());
         throw std::runtime_error("assimp error");
