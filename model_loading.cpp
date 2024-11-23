@@ -3,93 +3,135 @@
 
 #include "model_loading.hpp"
 
-/**
- * @brief returns vertex positions in the order specified by the indices
- *
- * @return said vertex positions
- */
-std::vector<glm::vec3> get_ordered_vertex_positions(std::vector<glm::vec3> &vertex_positions,
-                                                    std::vector<unsigned int> &indices) {
-    std::vector<glm::vec3> ovp;
-    // TODO we don't need a nested loop here I believe...
-    for (size_t i = 0; i < indices.size(); i += 3) {
-        for (size_t j = 0; j < 3; j++) {
-            ovp.push_back(vertex_positions[indices[i + j]]);
-        }
-    }
-    return ovp;
-}
-
-/**
- * @brief returns a list of lists of the form specified by \ref get_ordered_vertex_positions
- *
- * @return as mentioned in brief
- */
-std::vector<std::vector<glm::vec3>> Model::get_ordered_vertex_positions_for_each_mesh() {
-    std::vector<std::vector<glm::vec3>> ovpfem;
-    for (auto &mesh : meshes) {
-        ovpfem.push_back(get_ordered_vertex_positions(mesh.vertex_positions, mesh.indices));
-    }
-    return ovpfem;
-}
-
-Model ModelLoader::load_model(const std::string &path) {
-
-    std::function<void(aiMesh *, const aiScene *)> process_step = [this](aiMesh *mesh, const aiScene *scene) {
-        spdlog::get(Systems::asset_loading)->info("process step working");
-        this->meshes.push_back(this->process_mesh(mesh, scene));
-    };
-
-    std::function<void(aiNode *, const aiScene *)> recursively_process_nodes = ModelLoader::recursively_process_nodes_closure(process_step);
-
-    this->call_function_with_assimp_importer_context(path, [&](auto root, auto scene) {
-        spdlog::get(Systems::asset_loading)->info("starting to process nodes");
-        recursively_process_nodes(root, scene);
-        spdlog::get(Systems::asset_loading)->info("processed all nodes");
-    });
-
-    return Model(this->meshes);
-};
-
-/**
- * @note this function is guaranteed to terminate because all models are finite and non-cyclic
- *
- *  also we have to capture process_function by value, without this when I capture by a const reference I get a stack
- *  this only occurs from the texturedmodelloading stuff when called through inheritance, make this better by not using
- * inheritance at all, access error which probably means that somehow after the process_function is passed in the stack
- * pops before this function gets called, I don't know how but that's the only way I can imagine this occurs.
- */
-std::function<void(aiNode *, const aiScene *)>
-ModelLoader::recursively_process_nodes_closure(std::function<void(aiMesh *, const aiScene *)> process_function) {
-    std::function<void(aiNode * node, const aiScene *scene)> recursively_process_nodes =
-        [&recursively_process_nodes, process_function](aiNode *node, const aiScene *scene) {
-            spdlog::get(Systems::asset_loading)->info("started processing meshes");
-            for (unsigned int i = 0; i < node->mNumMeshes; i++) {
-                unsigned int mesh_index = node->mMeshes[i];
-                aiMesh *mesh = scene->mMeshes[mesh_index];
-                process_function(mesh, scene);
-            }
-            spdlog::get(Systems::asset_loading)->info("finished processing meshes");
-            for (unsigned int i = 0; i < node->mNumChildren; i++) {
-                recursively_process_nodes(node->mChildren[i], scene);
-            }
-        };
-    return recursively_process_nodes;
-};
-
-Mesh ModelLoader::process_mesh(aiMesh *mesh, const aiScene *scene) {
-    std::vector<glm::vec3> vertices = this->process_mesh_vertex_positions(mesh);
-    std::vector<unsigned int> indices = this->process_mesh_indices(mesh);
-    return {vertices, indices};
-};
-
 glm::vec3 assimp_to_glm_3d_vector(aiVector3D assimp_vector) {
     return {assimp_vector.x, assimp_vector.y, assimp_vector.z};
 }
 
-std::vector<glm::vec3> ModelLoader::process_mesh_vertex_positions(aiMesh *mesh) {
+std::vector<IndexedVertexPositions> parse_model_into_ivps(const std::string &model_path) {
+    Assimp::Importer importer;
+    const aiScene *scene =
+        importer.ReadFile(model_path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
+
+    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+        std::cerr << "Error: Assimp - " << importer.GetErrorString() << std::endl;
+    }
+    RecIvpCollector ric;
+    ric.rec_process_nodes(scene->mRootNode, scene);
+    return ric.ivps;
+}
+
+std::vector<IVPTextured> parse_model_into_ivpts(const std::string &model_path, bool flip_uvs) {
+    Assimp::Importer importer;
+
+    unsigned int flags = aiProcess_Triangulate | aiProcess_CalcTangentSpace;
+    if (flip_uvs) {
+        flags |= aiProcess_FlipUVs;
+    }
+
+    const aiScene *scene = importer.ReadFile(model_path, flags);
+
+    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+        std::cerr << "Error: Assimp - " << importer.GetErrorString() << std::endl;
+    }
+    RecIvptCollector ric(model_path);
+    ric.rec_process_nodes(scene->mRootNode, scene);
+    return ric.ivpts;
+}
+
+std::vector<IVPNTextured> parse_model_into_ivpnts(const std::string &model_path, bool flip_uvs) {
+    Assimp::Importer importer;
+
+    unsigned int flags = aiProcess_Triangulate | aiProcess_CalcTangentSpace;
+    if (flip_uvs) {
+        flags |= aiProcess_FlipUVs;
+    }
+
+    const aiScene *scene = importer.ReadFile(model_path, flags);
+
+    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+        std::cerr << "Error: Assimp - " << importer.GetErrorString() << std::endl;
+    }
+    RecIvpntCollector ric(model_path);
+    ric.rec_process_nodes(scene->mRootNode, scene);
+    return ric.ivpnts;
+}
+
+std::string get_directory_of_asset(const std::string &asset_path) {
+    return asset_path.substr(0, asset_path.find_last_of("/") + 1);
+}
+
+void RecIvpCollector::rec_process_nodes(aiNode *node, const aiScene *scene) {
+    for (unsigned int i = 0; i < node->mNumMeshes; i++) {
+        unsigned int mesh_index = node->mMeshes[i];
+        aiMesh *mesh = scene->mMeshes[mesh_index];
+        this->ivps.push_back(process_mesh_ivps(mesh, scene));
+    }
+
+    for (unsigned int i = 0; i < node->mNumChildren; i++) {
+        this->rec_process_nodes(node->mChildren[i], scene);
+    }
+}
+
+void RecIvptCollector::rec_process_nodes(aiNode *node, const aiScene *scene) {
+    for (unsigned int i = 0; i < node->mNumMeshes; i++) {
+        unsigned int mesh_index = node->mMeshes[i];
+        aiMesh *mesh = scene->mMeshes[mesh_index];
+        this->ivpts.push_back(process_mesh_ivpts(mesh, scene, directory_to_model));
+    }
+
+    for (unsigned int i = 0; i < node->mNumChildren; i++) {
+        this->rec_process_nodes(node->mChildren[i], scene);
+    }
+}
+
+RecIvptCollector::RecIvptCollector(const std::string &model_path) {
+    directory_to_model = get_directory_of_asset(model_path);
+}
+
+RecIvpntCollector::RecIvpntCollector(const std::string &model_path) {
+    directory_to_model = get_directory_of_asset(model_path);
+}
+
+void RecIvpntCollector::rec_process_nodes(aiNode *node, const aiScene *scene) {
+    for (unsigned int i = 0; i < node->mNumMeshes; i++) {
+        unsigned int mesh_index = node->mMeshes[i];
+        aiMesh *mesh = scene->mMeshes[mesh_index];
+        this->ivpnts.push_back(process_mesh_ivpnts(mesh, scene, directory_to_model));
+    }
+
+    for (unsigned int i = 0; i < node->mNumChildren; i++) {
+        this->rec_process_nodes(node->mChildren[i], scene);
+    }
+}
+
+IndexedVertexPositions process_mesh_ivps(aiMesh *mesh, const aiScene *scene) {
+    std::vector<glm::vec3> vertices = process_mesh_vertex_positions(mesh);
+    std::vector<unsigned int> indices = process_mesh_indices(mesh);
+    return {indices, vertices};
+};
+
+IVPTextured process_mesh_ivpts(aiMesh *mesh, const aiScene *scene, const std::string &directory_to_model) {
+    std::vector<glm::vec3> vertices = process_mesh_vertex_positions(mesh);
+    std::vector<unsigned int> indices = process_mesh_indices(mesh);
+    std::vector<glm::vec2> texture_coordinates = process_mesh_texture_coordinates(mesh);
+    std::vector<TextureInfo> texture_data = process_mesh_materials(mesh, scene);
+    std::string main_texture = directory_to_model + texture_data[0].path;
+    return {indices, vertices, texture_coordinates, main_texture};
+};
+
+IVPNTextured process_mesh_ivpnts(aiMesh *mesh, const aiScene *scene, const std::string &directory_to_model) {
+    std::vector<glm::vec3> vertices = process_mesh_vertex_positions(mesh);
+    std::vector<glm::vec3> normals = process_mesh_normals(mesh);
+    std::vector<unsigned int> indices = process_mesh_indices(mesh);
+    std::vector<glm::vec2> texture_coordinates = process_mesh_texture_coordinates(mesh);
+    std::vector<TextureInfo> texture_data = process_mesh_materials(mesh, scene);
+    std::string main_texture = directory_to_model + texture_data[0].path;
+    return {indices, vertices, normals, texture_coordinates, main_texture};
+};
+
+std::vector<glm::vec3> process_mesh_vertex_positions(aiMesh *mesh) {
     std::vector<glm::vec3> vertices;
-    spdlog::get(Systems::asset_loading)->info("This mesh has {} vertex_positions", mesh->mNumVertices);
+    /*spdlog::get(Systems::asset_loading)->info("This mesh has {} vertex_positions", mesh->mNumVertices);*/
     for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
         glm::vec3 vertex = {assimp_to_glm_3d_vector(mesh->mVertices[i])};
         vertices.push_back(vertex);
@@ -97,7 +139,83 @@ std::vector<glm::vec3> ModelLoader::process_mesh_vertex_positions(aiMesh *mesh) 
     return vertices;
 }
 
-std::vector<unsigned int> ModelLoader::process_mesh_indices(aiMesh *mesh) {
+std::vector<TextureInfo> process_mesh_materials(aiMesh *mesh, const aiScene *scene,
+                                                const std::string &directory_to_asset_being_loaded) {
+    std::vector<TextureInfo> textures;
+
+    bool mesh_has_materials = mesh->mMaterialIndex >= 0;
+
+    if (mesh_has_materials) {
+        aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
+
+        std::vector<TextureInfo> diffuse_maps_texture_info = get_texture_info_for_material(
+            material, aiTextureType_DIFFUSE, TextureType::DIFFUSE, directory_to_asset_being_loaded);
+        textures.insert(textures.end(), diffuse_maps_texture_info.begin(), diffuse_maps_texture_info.end());
+
+        if (diffuse_maps_texture_info.size() == 0) {
+            /*spdlog::get(Systems::asset_loading)->warn("This material doesn't have any diffuse maps");*/
+        }
+
+        std::vector<TextureInfo> specular_maps_texture_info = get_texture_info_for_material(
+            material, aiTextureType_SPECULAR, TextureType::SPECULAR, directory_to_asset_being_loaded);
+        textures.insert(textures.end(), specular_maps_texture_info.begin(), specular_maps_texture_info.end());
+
+        if (specular_maps_texture_info.size() == 0) {
+            /*spdlog::get(Systems::asset_loading)->info("This material doesn't have any specular maps");*/
+        }
+    }
+    return textures;
+}
+
+std::vector<TextureInfo> get_texture_info_for_material(aiMaterial *material, aiTextureType type,
+                                                       TextureType texture_type,
+                                                       const std::string &directory_to_asset_being_loaded) {
+    std::vector<TextureInfo> textures;
+    for (unsigned int i = 0; i < material->GetTextureCount(type); i++) {
+
+        aiString texture_path;
+        material->GetTexture(type, i, &texture_path);
+
+        std::string asset_path = directory_to_asset_being_loaded + std::string(texture_path.C_Str());
+
+        TextureInfo texture{texture_type, asset_path.c_str()};
+        textures.push_back(texture);
+    }
+    return textures;
+};
+
+std::vector<glm::vec2> process_mesh_texture_coordinates(aiMesh *mesh) {
+    std::vector<glm::vec2> texture_coordinates;
+    // there is a better way to do this at some point
+    bool mesh_has_texture_coordinates = mesh->mTextureCoords[0] != nullptr;
+    for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
+
+        glm::vec2 texture_coordinate;
+        if (mesh_has_texture_coordinates) {
+            texture_coordinate = glm::vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
+        } else {
+            /*spdlog::get(Systems::asset_loading)->warn("This mesh doesn't have texture coordinates!");*/
+            texture_coordinate = glm::vec2(0.0f, 0.0f);
+        }
+        texture_coordinates.push_back(texture_coordinate);
+    }
+    return texture_coordinates;
+}
+
+std::vector<glm::vec3> process_mesh_normals(aiMesh *mesh) {
+    std::vector<glm::vec3> normals;
+    for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
+        if (mesh->HasNormals()) {
+            normals.push_back(assimp_to_glm_3d_vector(mesh->mNormals[i]));
+        } else {
+            /*spdlog::get(Systems::asset_loading)->warn("This mesh doesn't have texture coordinates!");*/
+            normals.push_back(glm::vec3(0, 0, 0));
+        }
+    }
+    return normals;
+}
+
+std::vector<unsigned int> process_mesh_indices(aiMesh *mesh) {
     std::vector<unsigned int> indices;
     for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
         aiFace face = mesh->mFaces[i];
