@@ -114,8 +114,8 @@ IVPTextured process_mesh_ivpts(aiMesh *mesh, const aiScene *scene, const std::st
     std::vector<glm::vec3> vertices = process_mesh_vertex_positions(mesh);
     std::vector<unsigned int> indices = process_mesh_indices(mesh);
     std::vector<glm::vec2> texture_coordinates = process_mesh_texture_coordinates(mesh);
-    std::vector<TextureInfo> texture_data = process_mesh_materials(mesh, scene);
-    std::string main_texture = directory_to_model + texture_data[0].path;
+    std::vector<TextureInfo> texture_data = process_mesh_materials(mesh, scene, directory_to_model);
+    std::string main_texture = texture_data[0].path;
     return {indices, vertices, texture_coordinates, main_texture};
 };
 
@@ -124,8 +124,8 @@ IVPNTextured process_mesh_ivpnts(aiMesh *mesh, const aiScene *scene, const std::
     std::vector<glm::vec3> normals = process_mesh_normals(mesh);
     std::vector<unsigned int> indices = process_mesh_indices(mesh);
     std::vector<glm::vec2> texture_coordinates = process_mesh_texture_coordinates(mesh);
-    std::vector<TextureInfo> texture_data = process_mesh_materials(mesh, scene);
-    std::string main_texture = directory_to_model + texture_data[0].path;
+    std::vector<TextureInfo> texture_data = process_mesh_materials(mesh, scene, directory_to_model);
+    std::string main_texture = texture_data[0].path;
     return {indices, vertices, normals, texture_coordinates, main_texture};
 };
 
@@ -143,6 +143,8 @@ std::vector<TextureInfo> process_mesh_materials(aiMesh *mesh, const aiScene *sce
                                                 const std::string &directory_to_asset_being_loaded) {
     std::vector<TextureInfo> textures;
 
+    std::cout << "processing mesh materials: " << directory_to_asset_being_loaded << std::endl;
+
     bool mesh_has_materials = mesh->mMaterialIndex >= 0;
 
     if (mesh_has_materials) {
@@ -151,6 +153,10 @@ std::vector<TextureInfo> process_mesh_materials(aiMesh *mesh, const aiScene *sce
         std::vector<TextureInfo> diffuse_maps_texture_info = get_texture_info_for_material(
             material, aiTextureType_DIFFUSE, TextureType::DIFFUSE, directory_to_asset_being_loaded);
         textures.insert(textures.end(), diffuse_maps_texture_info.begin(), diffuse_maps_texture_info.end());
+
+        for (auto &texture : textures) {
+            std::cout << texture.path << std::endl;
+        }
 
         if (diffuse_maps_texture_info.size() == 0) {
             /*spdlog::get(Systems::asset_loading)->warn("This material doesn't have any diffuse maps");*/
@@ -171,18 +177,30 @@ std::vector<TextureInfo> get_texture_info_for_material(aiMaterial *material, aiT
                                                        TextureType texture_type,
                                                        const std::string &directory_to_asset_being_loaded) {
     std::vector<TextureInfo> textures;
-    for (unsigned int i = 0; i < material->GetTextureCount(type); i++) {
 
+    // loop through the textures of the specified type
+    for (unsigned int i = 0; i < material->GetTextureCount(type); i++) {
         aiString texture_path;
         material->GetTexture(type, i, &texture_path);
 
+        // construct the asset path
         std::string asset_path = directory_to_asset_being_loaded + std::string(texture_path.C_Str());
 
+        // create the texture info and add it to the vector
         TextureInfo texture{texture_type, asset_path.c_str()};
         textures.push_back(texture);
     }
+
+    // if no diffuse textures are found, add the missing texture
+    if (textures.empty() && texture_type == TextureType::DIFFUSE) {
+        std::cout << "no messages" << std::endl;
+        std::string missing_texture_path = "assets/images/missing_texture.png";
+        TextureInfo missing_texture{texture_type, missing_texture_path.c_str()};
+        textures.push_back(missing_texture);
+    }
+
     return textures;
-};
+}
 
 std::vector<glm::vec2> process_mesh_texture_coordinates(aiMesh *mesh) {
     std::vector<glm::vec2> texture_coordinates;
