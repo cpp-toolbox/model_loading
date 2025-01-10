@@ -1,5 +1,6 @@
 #include <spdlog/spdlog.h>
 #include <assimp/postprocess.h>
+#include <filesystem>
 
 #include "model_loading.hpp"
 
@@ -56,8 +57,13 @@ std::vector<IVPNTextured> parse_model_into_ivpnts(const std::string &model_path,
     return ric.ivpnts;
 }
 
+/// @brief Extracts the directory path of a given asset path using std::filesystem.
+/// @param asset_path The full path of the asset.
+/// @return The directory part of the asset path.
 std::string get_directory_of_asset(const std::string &asset_path) {
-    return asset_path.substr(0, asset_path.find_last_of("/") + 1);
+    std::filesystem::path path(asset_path);
+    // Convert parent_path to string and append the preferred separator
+    return path.parent_path().string() + std::string(1, std::filesystem::path::preferred_separator);
 }
 
 void RecIvpCollector::rec_process_nodes(aiNode *node, const aiScene *scene) {
@@ -90,6 +96,8 @@ RecIvptCollector::RecIvptCollector(const std::string &model_path) {
 
 RecIvpntCollector::RecIvpntCollector(const std::string &model_path) {
     directory_to_model = get_directory_of_asset(model_path);
+    std::cout << "model path: " << model_path << " directory to model: " << directory_to_model << std::endl;
+
 }
 
 void RecIvpntCollector::rec_process_nodes(aiNode *node, const aiScene *scene) {
@@ -116,7 +124,10 @@ IVPTextured process_mesh_ivpts(aiMesh *mesh, const aiScene *scene, const std::st
     std::vector<glm::vec2> texture_coordinates = process_mesh_texture_coordinates(mesh);
     std::vector<TextureInfo> texture_data = process_mesh_materials(mesh, scene, directory_to_model);
     std::string main_texture = texture_data[0].path;
-    return {indices, vertices, texture_coordinates, main_texture};
+    std::filesystem::path fs_path = main_texture;
+    // Convert to the preferred format for the operating system
+    std::string texture_native_path = fs_path.make_preferred().string();
+    return {indices, vertices, texture_coordinates, texture_native_path};
 };
 
 IVPNTextured process_mesh_ivpnts(aiMesh *mesh, const aiScene *scene, const std::string &directory_to_model) {
@@ -126,7 +137,10 @@ IVPNTextured process_mesh_ivpnts(aiMesh *mesh, const aiScene *scene, const std::
     std::vector<glm::vec2> texture_coordinates = process_mesh_texture_coordinates(mesh);
     std::vector<TextureInfo> texture_data = process_mesh_materials(mesh, scene, directory_to_model);
     std::string main_texture = texture_data[0].path;
-    return {indices, vertices, normals, texture_coordinates, main_texture};
+    std::filesystem::path fs_path = main_texture;
+    // Convert to the preferred format for the operating system
+    std::string texture_native_path = fs_path.make_preferred().string();
+    return {indices, vertices, normals, texture_coordinates, texture_native_path};
 };
 
 std::vector<glm::vec3> process_mesh_vertex_positions(aiMesh *mesh) {
