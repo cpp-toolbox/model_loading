@@ -4,6 +4,8 @@
 
 #include "model_loading.hpp"
 
+namespace model_loading {
+
 glm::vec3 assimp_to_glm_3d_vector(aiVector3D assimp_vector) {
     return {assimp_vector.x, assimp_vector.y, assimp_vector.z};
 }
@@ -97,7 +99,6 @@ RecIvptCollector::RecIvptCollector(const std::string &model_path) {
 RecIvpntCollector::RecIvpntCollector(const std::string &model_path) {
     directory_to_model = get_directory_of_asset(model_path);
     std::cout << "model path: " << model_path << " directory to model: " << directory_to_model << std::endl;
-
 }
 
 void RecIvpntCollector::rec_process_nodes(aiNode *node, const aiScene *scene) {
@@ -258,3 +259,5 @@ std::vector<unsigned int> process_mesh_indices(aiMesh *mesh) {
     }
     return indices;
 }
+
+} // namespace model_loading
