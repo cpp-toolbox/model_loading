@@ -1,34 +1,15 @@
-# Info
+# model_loading
+loads in obj files and their related data.
 
-Loads in OBJ files only using vertex data
+# missing textures
+note that when a model is loaded in and the path to a file doesn't exist then we use the missing texture, thus you must always create the following file in your project
+`assets/images/missing_texture.png`
+![missing_texture](https://github.com/user-attachments/assets/a5cb36a4-5e04-4615-a5bc-dc0f8deb8d4e)
+
 
 # Dependencies
 
 * [assimp](https://github.com/assimp/assimp)
 * [glm](https://github.com/g-truc/glm)
 
-# CMake
 
-```
-...
-
-# ASSIMP: Asset Importer
-# only use obj to speed up compilation
-set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(ASSIMP_NO_EXPORT OFF CACHE BOOL "" FORCE)
-set(ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT OFF CACHE BOOL "" FORCE)
-set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF CACHE BOOL "" FORCE)
-set(ASSIMP_BUILD_OBJ_IMPORTER ON CACHE BOOL "" FORCE)
-include_directories(external_libraries/assimp/include)
-add_subdirectory(external_libraries/assimp)
-
-# GLM: opengl mathematics
-include_directories(external_libraries/glm)
-add_subdirectory(external_libraries/glm)
-
-... 
-
-target_link_libraries(your_project_name ... assimp)
-```
