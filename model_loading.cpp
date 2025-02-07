@@ -10,7 +10,7 @@ glm::vec3 assimp_to_glm_3d_vector(aiVector3D assimp_vector) {
     return {assimp_vector.x, assimp_vector.y, assimp_vector.z};
 }
 
-std::vector<IndexedVertexPositions> parse_model_into_ivps(const std::string &model_path) {
+std::vector<draw_info::IndexedVertexPositions> parse_model_into_ivps(const std::string &model_path) {
     Assimp::Importer importer;
     const aiScene *scene =
         importer.ReadFile(model_path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
@@ -23,7 +23,7 @@ std::vector<IndexedVertexPositions> parse_model_into_ivps(const std::string &mod
     return ric.ivps;
 }
 
-std::vector<IVPTextured> parse_model_into_ivpts(const std::string &model_path, bool flip_uvs) {
+std::vector<draw_info::IVPTextured> parse_model_into_ivpts(const std::string &model_path, bool flip_uvs) {
     Assimp::Importer importer;
 
     unsigned int flags = aiProcess_Triangulate | aiProcess_CalcTangentSpace;
@@ -41,7 +41,7 @@ std::vector<IVPTextured> parse_model_into_ivpts(const std::string &model_path, b
     return ric.ivpts;
 }
 
-std::vector<IVPNTextured> parse_model_into_ivpnts(const std::string &model_path, bool flip_uvs) {
+std::vector<draw_info::IVPNTextured> parse_model_into_ivpnts(const std::string &model_path, bool flip_uvs) {
     Assimp::Importer importer;
 
     unsigned int flags = aiProcess_Triangulate | aiProcess_CalcTangentSpace;
@@ -113,13 +113,13 @@ void RecIvpntCollector::rec_process_nodes(aiNode *node, const aiScene *scene) {
     }
 }
 
-IndexedVertexPositions process_mesh_ivps(aiMesh *mesh, const aiScene *scene) {
+draw_info::IndexedVertexPositions process_mesh_ivps(aiMesh *mesh, const aiScene *scene) {
     std::vector<glm::vec3> vertices = process_mesh_vertex_positions(mesh);
     std::vector<unsigned int> indices = process_mesh_indices(mesh);
     return {indices, vertices};
 };
 
-IVPTextured process_mesh_ivpts(aiMesh *mesh, const aiScene *scene, const std::string &directory_to_model) {
+draw_info::IVPTextured process_mesh_ivpts(aiMesh *mesh, const aiScene *scene, const std::string &directory_to_model) {
     std::vector<glm::vec3> vertices = process_mesh_vertex_positions(mesh);
     std::vector<unsigned int> indices = process_mesh_indices(mesh);
     std::vector<glm::vec2> texture_coordinates = process_mesh_texture_coordinates(mesh);
@@ -131,7 +131,7 @@ IVPTextured process_mesh_ivpts(aiMesh *mesh, const aiScene *scene, const std::st
     return {indices, vertices, texture_coordinates, texture_native_path};
 };
 
-IVPNTextured process_mesh_ivpnts(aiMesh *mesh, const aiScene *scene, const std::string &directory_to_model) {
+draw_info::IVPNTextured process_mesh_ivpnts(aiMesh *mesh, const aiScene *scene, const std::string &directory_to_model) {
     std::vector<glm::vec3> vertices = process_mesh_vertex_positions(mesh);
     std::vector<glm::vec3> normals = process_mesh_normals(mesh);
     std::vector<unsigned int> indices = process_mesh_indices(mesh);
