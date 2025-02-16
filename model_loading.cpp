@@ -4,6 +4,8 @@
 
 #include "model_loading.hpp"
 
+namespace model_loading {
+
 glm::vec3 assimp_to_glm_3d_vector(aiVector3D assimp_vector) {
     return {assimp_vector.x, assimp_vector.y, assimp_vector.z};
 }
@@ -257,3 +259,5 @@ std::vector<unsigned int> process_mesh_indices(aiMesh *mesh) {
     }
     return indices;
 }
+
+} // namespace model_loading

@@ -11,6 +11,8 @@
 
 #include "sbpt_generated_includes.hpp"
 
+namespace model_loading {
+
 enum TextureType { DIFFUSE, SPECULAR };
 
 struct TextureInfo {
@@ -19,8 +21,8 @@ struct TextureInfo {
 };
 
 std::vector<draw_info::IndexedVertexPositions> parse_model_into_ivps(const std::string &model_path);
-std::vector<draw_info::IVPTextured> parse_model_into_ivpts(const std::string &model_path, bool flip_uvs);
-std::vector<draw_info::IVPNTextured> parse_model_into_ivpnts(const std::string &model_path, bool flip_uvs);
+std::vector<draw_info::IVPTextured> parse_model_into_ivpts(const std::string &model_path, bool flip_uvs = false);
+std::vector<draw_info::IVPNTextured> parse_model_into_ivpnts(const std::string &model_path, bool flip_uvs = false);
 
 std::string get_directory_of_asset(const std::string &asset_path);
 
@@ -65,5 +67,7 @@ std::vector<glm::vec3> process_mesh_normals(aiMesh *mesh);
 glm::vec3 assimp_to_glm_3d_vector(aiVector3D assimp_vector);
 std::vector<glm::vec3> get_ordered_vertex_positions(std::vector<glm::vec3> &vertex_positions,
                                                     std::vector<unsigned int> &indices);
+
+} // namespace model_loading
 
 #endif // MODEL_LOADING_HPP
