@@ -21,7 +21,8 @@ struct TextureInfo {
 };
 
 std::vector<draw_info::IndexedVertexPositions> parse_model_into_ivps(const std::string &model_path);
-std::vector<draw_info::IVPTextured> parse_model_into_ivpts(const std::string &model_path, bool flip_uvs = false);
+std::vector<draw_info::IVPTextured>
+parse_model_into_ivpts(const std::string &model_path, UniqueIDGenerator &unique_id_generator, bool flip_uvs = false);
 std::vector<draw_info::IVPNTextured> parse_model_into_ivpnts(const std::string &model_path, bool flip_uvs = false);
 
 std::string get_directory_of_asset(const std::string &asset_path);
@@ -36,8 +37,9 @@ class RecIvpntCollector {
 
 class RecIvptCollector {
   public:
-    RecIvptCollector(const std::string &model_path);
+    RecIvptCollector(const std::string &model_path, UniqueIDGenerator &unique_id_generator);
     std::string directory_to_model;
+    UniqueIDGenerator &unique_id_generator;
     std::vector<draw_info::IVPTextured> ivpts;
     void rec_process_nodes(aiNode *node, const aiScene *scene);
 };
@@ -49,7 +51,8 @@ class RecIvpCollector {
 };
 
 draw_info::IndexedVertexPositions process_mesh_ivps(aiMesh *mesh, const aiScene *scene);
-draw_info::IVPTextured process_mesh_ivpts(aiMesh *mesh, const aiScene *scene, const std::string &directory_to_model);
+draw_info::IVPTextured process_mesh_ivpts(aiMesh *mesh, const aiScene *scene, const std::string &directory_to_model,
+                                          int object_id);
 draw_info::IVPNTextured process_mesh_ivpnts(aiMesh *mesh, const aiScene *scene, const std::string &directory_to_model);
 std::vector<unsigned int> process_mesh_indices(aiMesh *mesh);
 

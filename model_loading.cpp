@@ -23,7 +23,8 @@ std::vector<draw_info::IndexedVertexPositions> parse_model_into_ivps(const std::
     return ric.ivps;
 }
 
-std::vector<draw_info::IVPTextured> parse_model_into_ivpts(const std::string &model_path, bool flip_uvs) {
+std::vector<draw_info::IVPTextured> parse_model_into_ivpts(const std::string &model_path,
+                                                           UniqueIDGenerator &unique_id_generator, bool flip_uvs) {
     Assimp::Importer importer;
 
     unsigned int flags = aiProcess_Triangulate | aiProcess_CalcTangentSpace;
@@ -36,7 +37,7 @@ std::vector<draw_info::IVPTextured> parse_model_into_ivpts(const std::string &mo
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         std::cerr << "Error: Assimp - " << importer.GetErrorString() << std::endl;
     }
-    RecIvptCollector ric(model_path);
+    RecIvptCollector ric(model_path, unique_id_generator);
     ric.rec_process_nodes(scene->mRootNode, scene);
     return ric.ivpts;
 }
@@ -84,7 +85,7 @@ void RecIvptCollector::rec_process_nodes(aiNode *node, const aiScene *scene) {
     for (unsigned int i = 0; i < node->mNumMeshes; i++) {
         unsigned int mesh_index = node->mMeshes[i];
         aiMesh *mesh = scene->mMeshes[mesh_index];
-        this->ivpts.push_back(process_mesh_ivpts(mesh, scene, directory_to_model));
+        this->ivpts.push_back(process_mesh_ivpts(mesh, scene, directory_to_model, unique_id_generator.get_id()));
     }
 
     for (unsigned int i = 0; i < node->mNumChildren; i++) {
@@ -92,7 +93,8 @@ void RecIvptCollector::rec_process_nodes(aiNode *node, const aiScene *scene) {
     }
 }
 
-RecIvptCollector::RecIvptCollector(const std::string &model_path) {
+RecIvptCollector::RecIvptCollector(const std::string &model_path, UniqueIDGenerator &unique_id_generator)
+    : unique_id_generator(unique_id_generator) {
     directory_to_model = get_directory_of_asset(model_path);
 }
 
@@ -119,7 +121,8 @@ draw_info::IndexedVertexPositions process_mesh_ivps(aiMesh *mesh, const aiScene 
     return {indices, vertices};
 };
 
-draw_info::IVPTextured process_mesh_ivpts(aiMesh *mesh, const aiScene *scene, const std::string &directory_to_model) {
+draw_info::IVPTextured process_mesh_ivpts(aiMesh *mesh, const aiScene *scene, const std::string &directory_to_model,
+                                          int object_id) {
     std::vector<glm::vec3> vertices = process_mesh_vertex_positions(mesh);
     std::vector<unsigned int> indices = process_mesh_indices(mesh);
     std::vector<glm::vec2> texture_coordinates = process_mesh_texture_coordinates(mesh);
@@ -128,7 +131,7 @@ draw_info::IVPTextured process_mesh_ivpts(aiMesh *mesh, const aiScene *scene, co
     std::filesystem::path fs_path = main_texture;
     // Convert to the preferred format for the operating system
     std::string texture_native_path = fs_path.make_preferred().string();
-    return {indices, vertices, texture_coordinates, texture_native_path};
+    return {indices, vertices, texture_coordinates, texture_native_path, object_id};
 };
 
 draw_info::IVPNTextured process_mesh_ivpnts(aiMesh *mesh, const aiScene *scene, const std::string &directory_to_model) {
