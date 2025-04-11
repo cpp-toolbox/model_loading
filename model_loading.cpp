@@ -255,6 +255,10 @@ std::vector<unsigned int> process_mesh_indices(aiMesh *mesh) {
     std::vector<unsigned int> indices;
     for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
         aiFace face = mesh->mFaces[i];
+        if (face.mNumIndices < 3) {
+            std::cout << "there is a face with less than 3 sides, so you have degenerate geom in your export"
+                      << std::endl;
+        }
         assert(face.mNumIndices == 3); // if this is false we are not working with triangles
         for (unsigned int j = 0; j < face.mNumIndices; j++) {
             indices.push_back(face.mIndices[j]);
