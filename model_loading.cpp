@@ -131,7 +131,8 @@ draw_info::IVPTextured process_mesh_ivpts(aiMesh *mesh, const aiScene *scene, co
     std::filesystem::path fs_path = main_texture;
     // Convert to the preferred format for the operating system
     std::string texture_native_path = fs_path.make_preferred().string();
-    return {indices, vertices, texture_coordinates, texture_native_path, object_id};
+    std::string name = mesh->mName.C_Str();
+    return {indices, vertices, texture_coordinates, texture_native_path, object_id, name};
 };
 
 draw_info::IVPNTextured process_mesh_ivpnts(aiMesh *mesh, const aiScene *scene, const std::string &directory_to_model) {
@@ -211,7 +212,7 @@ std::vector<TextureInfo> get_texture_info_for_material(aiMaterial *material, aiT
 
     // if no diffuse textures are found, add the missing texture
     if (textures.empty() && texture_type == TextureType::DIFFUSE) {
-        std::cout << "no messages" << std::endl;
+        std::cout << "no diffuse textures found, using missing texture" << std::endl;
         std::string missing_texture_path = "assets/images/missing_texture.png";
         TextureInfo missing_texture{texture_type, missing_texture_path.c_str()};
         textures.push_back(missing_texture);
