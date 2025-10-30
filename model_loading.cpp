@@ -131,6 +131,7 @@ draw_info::IVPTextured process_mesh_ivpts(aiMesh *mesh, const aiScene *scene, co
     std::filesystem::path fs_path = main_texture;
     // Convert to the preferred format for the operating system
     std::string texture_native_path = fs_path.make_preferred().string();
+    // TODO: this needs to be done in more places now that other things accept names
     std::string name = mesh->mName.C_Str();
     return {indices, vertices, texture_coordinates, texture_native_path, object_id, name};
 };
