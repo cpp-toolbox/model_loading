@@ -118,7 +118,10 @@ void RecIvpntCollector::rec_process_nodes(aiNode *node, const aiScene *scene) {
 draw_info::IndexedVertexPositions process_mesh_ivps(aiMesh *mesh, const aiScene *scene) {
     std::vector<glm::vec3> vertices = process_mesh_vertex_positions(mesh);
     std::vector<unsigned int> indices = process_mesh_indices(mesh);
-    return {indices, vertices};
+    std::string name = mesh->mName.C_Str();
+    draw_info::IndexedVertexPositions ivp{indices, vertices};
+    ivp.name = name;
+    return ivp;
 };
 
 draw_info::IVPTextured process_mesh_ivpts(aiMesh *mesh, const aiScene *scene, const std::string &directory_to_model,
